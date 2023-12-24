@@ -1,0 +1,77 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link th:href="@{/css/bootstrap.min.css}"
+          href="../css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 560px;
+        }
+
+         .field-error {
+        border-color: #dc3545;
+        color: #dc3545;
+         }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="py-5 text-center">
+        <h2 th:text="#{page.addItem}">상품 등록</h2>
+    </div>
+
+    <form action="item.html" th:action th:object="${item}" method="post">
+        <div>
+            <p th:if="${errors?.containsKey('global')}" th:text="${errors['global']}" class="field-error">글로발 에러</p>
+        </div>
+        <div>
+            <label for="itemName" th:text="#{label.item.itemName}">상품명</label>
+            <input type="text" id="itemName" th:field="*{itemName}"
+                   th:class="${errors?.containsKey('itemName')} ? 'form-control field-error' : 'form-control'"
+                   class="form-control" placeholder="이름을 입력하세요">
+            <div th:if="${errors?.containsKey('itemName')}" th:text="${errors['itemName']}" class="field-error"></div>
+        </div>
+        <div>
+            <label for="price" th:text="#{label.item.price}">가격</label>
+            <input type="text" id="price" th:field="*{price}"
+                   th:class="${errors?.containsKey('price')} ? 'form-control field-error' : 'form-control'"
+                   class="form-control" placeholder="가격을 입력하세요">
+            <div th:if="${errors?.containsKey('price')}" th:text="${errors['price']}" class="field-error"></div>
+        </div>
+        <div>
+            <label for="quantity" th:text="#{label.item.quantity}">수량</label>
+            <input type="text" id="quantity" th:field="*{quantity}"
+                   th:class="${errors?.containsKey('price')} ? 'form-control field-error' : 'form-control'"
+                   class="form-control" placeholder="수량을 입력하세요">
+            <div th:if="${errors?.containsKey('quantity')}" th:text="${errors['quantity']}" class="field-error"></div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="row">
+            <div class="col">
+                <button class="w-100 btn btn-primary btn-lg" type="submit" th:text="#{button.save}">상품 등록</button>
+            </div>
+            <div class="col">
+                <button class="w-100 btn btn-secondary btn-lg"
+                        onclick="location.href='items.html'"
+                        th:onclick="|location.href='@{/validation/v2/items}'|"
+                        type="button" th:text="#{button.cancel}">취소
+                </button>
+            </div>
+        </div>
+
+    </form>
+
+</div> <!-- /container -->
+</body>
+</html>
+<!--만약 여기에서 `errors` 가 `null` 이라면 어떻게 될까?
+생각해보면 등록폼에 진입한 시점에는 `errors` 가 없다.
+따라서 `errors.containsKey()` 를 호출하는 순간 `NullPointerException` 이 발생한다.
+`errors?.` 은 `errors` 가 `null` 일때 `NullPointerException` 이 발생하는 대신, `null` 을 반환하는 문법
+이다.
+`th:if` 에서 `null` 은 실패로 처리되므로 오류 메시지가 출력되지 않는다.-->
