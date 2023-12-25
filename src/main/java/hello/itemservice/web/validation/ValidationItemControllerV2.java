@@ -10,6 +10,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
@@ -24,6 +26,14 @@ import java.util.Map;
 public class ValidationItemControllerV2 {
 
     private final ItemRepository itemRepository;
+    private final ItemValidator itemValidator; //컴포넌트 스캔했고, 생성자 주입이 된다.
+
+
+    @InitBinder
+    public void init(WebDataBinder webDataBinder) {
+        log.info("init Binder = {}", webDataBinder);
+        webDataBinder.addValidators(itemValidator);
+    }//컨트롤러가 호출 될 떄마다 자동으로 검증기를 webDataBinder에 넣어둔다.
 
     @GetMapping
     public String items(Model model) {
@@ -49,9 +59,28 @@ public class ValidationItemControllerV2 {
      * Error가 발생할 경우에도 @ModelAttribute어노테이션이 item에 담긴 정보를 그대로 담아서 다시 뷰로 전달한다.
      * 사용자는 자신이 입력한 내용을 그대로 다시 볼 수 있다.
      */
-    @PostMapping("/add")
+    //@PostMapping("/add")
     public String addItem(@ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes) {
-        addValidationV3(item, bindingResult);
+        itemValidator.validate(item, bindingResult);
+        if (bindingResult.hasErrors()) { //부정의 부정은 리팩토링을 통해 이해하기 쉽게.
+            log.info("bindingResult = {}", bindingResult);
+            return "validation/v2/addForm";
+        }
+        Item savedItem = itemRepository.save(item);
+        redirectAttributes.addAttribute("itemId", savedItem.getId());
+        redirectAttributes.addAttribute("status", true);
+        return "redirect:/validation/v2/items/{itemId}";
+    }
+
+    /**
+     * `@Validated` 는 검증기를 실행하라는 애노테이션이다.
+     * 이 애노테이션이 붙으면 앞서 `WebDataBinder` 에 등록한 검증기를 찾아서 실행한다. 그런데 여러 검증기를 등록한다
+     * 면 그 중에 어떤 검증기가 실행되어야 할지 구분이 필요하다. 이때 `supports()` 가 사용된다. 여기서는
+     * `supports(Item.class)` 호출되고, 결과가 `true` 이므로 `ItemValidator` 의 `validate()` 가 호출된다.
+     */
+    @PostMapping("/add")
+    public String addItemV6(@Validated @ModelAttribute Item item, BindingResult bindingResult, RedirectAttributes redirectAttributes) {
+       log.info("info log = {addItemV6}");
         if (bindingResult.hasErrors()) { //부정의 부정은 리팩토링을 통해 이해하기 쉽게.
             log.info("bindingResult = {}", bindingResult);
             return "validation/v2/addForm";
@@ -151,7 +180,7 @@ public class ValidationItemControllerV2 {
         //바인딩은 잘 되어서 데이터가 잘 들어왔으므로 bindingResult의 값은 false이이다
         if (item.getPrice() == null || item.getPrice() < 1_000 || item.getPrice() > 100_000) {
             bindingResult.addError(new FieldError("item", "price", item.getPrice(),
-                    false, new String[]{"range.item.price"}, new Object[]{"1,000","1,000,000"}, null));
+                    false, new String[]{"range.item.price"}, new Object[]{"1,000", "1,000,000"}, null));
         }
         if (item.getQuantity() == null || item.getQuantity() <= 0 || item.getQuantity() > 9999) {
             bindingResult.addError(new FieldError("item", "quantity", item.getQuantity(),
@@ -179,6 +208,37 @@ public class ValidationItemControllerV2 {
          */
     }
 
+    private void addValidationV4(Item item, BindingResult bindingResult) {
 
+        log.info("bindingResult.getObjectName() = {}", bindingResult.getObjectName());
+        /**
+         * Item에 @Data어노테이션이 붙어있고 toSTring어노테이션도 붙어있어 출력시
+         * bindingResult.getTarget() = Item(id=null, itemName=, price=null, quantity=null) 이게 나온다.
+         */
+
+        log.info("bindingResult.getTarget() = {}", bindingResult.getTarget());
+
+        if (!StringUtils.hasText(item.getItemName())) {
+            bindingResult.rejectValue("itemName", "required");
+        }
+
+        //바인딩은 잘 되어서 데이터가 잘 들어왔으므로 bindingResult의 값은 false이이다
+        if (item.getPrice() == null || item.getPrice() < 1_000 || item.getPrice() > 100_000) {
+            if (!StringUtils.hasText(item.getItemName())) {
+                bindingResult.rejectValue("price", "range", new Object[]{"1000", "1000000"}, null);
+            }
+            if (item.getQuantity() == null || item.getQuantity() <= 0 || item.getQuantity() > 9999) {
+                bindingResult.rejectValue("quantity", "max", new Object[]{"9999"}, null);
+            }
+            if (item.getQuantity() != null && item.getPrice() != null) {
+                int resultPrice = item.getPrice() * item.getQuantity();
+                if (resultPrice < 10_000) {
+                    bindingResult.reject("totalPriceMin", new Object[]{"10,000", resultPrice}, null);
+
+                    //ObjectError는 값이 넘어오거나 하는게 아니기 떄문에 바인딩 실패라는 건 없다. 다시 반환할 rejectedValue도 존재하지 않는다.
+                }
+            }
+        }
+    }
 }
 
