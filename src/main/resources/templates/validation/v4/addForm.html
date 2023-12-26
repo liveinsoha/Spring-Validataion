@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <link th:href="@{/css/bootstrap.min.css}"
+          href="../css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 560px;
+        }
+
+         .field-error {
+        border-color: #dc3545;
+        color: #dc3545;
+         }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="py-5 text-center">
+        <h2 th:text="#{page.addItem}">상품 등록</h2>
+    </div>
+
+    <form action="item.html" th:action th:object="${item}" method="post">
+        <div th:if="${#fields.hasGlobalErrors()}" >
+            <p th:each="err : ${#fields.globalErrors()}" th:text="${err}" class="field-error">글로발 에러</p>
+        </div>
+        <!--`#fields` : `#fields` 로 `BindingResult` 가 제공하는 검증 오류에 접근할 수 있다.
+        한 가지가 아닐 수 있으니 반복문으로 모든 글로벌에러를 받아서 출력한다.-->
+        <div>
+            <label for="itemName" th:text="#{label.item.itemName}">상품명</label>
+            <input type="text" id="itemName" th:field="*{itemName}"
+                   th:errorclass="field-error"
+                   class="form-control" placeholder="이름을 입력하세요">
+            <!--th:field로 받은 필드에 에러가 있으면, th:errorclass 동작
+            th:errorclass` : `th:field` 에서 지정한 필드에 오류가 있으면 `class` 정보를 추가한다.-->
+            <div th:errors="*{itemName}" class="field-error"></div>
+            <!--th:errors` : 해당 필드에 오류가 있는 경우에 태그를 출력한다. `th:if` 의 편의 버전이다.-->
+        </div>
+        <div>
+            <label for="price" th:text="#{label.item.price}">가격</label>
+            <input type="text" id="price" th:field="*{price}" th:errorclass="field-error"
+                   class="form-control" placeholder="가격을 입력하세요">
+            <div th:errors="*{price}" class="field-error"></div>
+        </div>
+        <div>
+            <label for="quantity" th:text="#{label.item.quantity}">수량</label>
+            <input type="text" id="quantity" th:field="*{quantity}"
+                   th:errorclass="field-error"
+                   class="form-control" placeholder="수량을 입력하세요">
+            <div th:errors="*{quantity}" class="field-error"></div>
+        </div>
+
+        <hr class="my-4">
+
+        <div class="row">
+            <div class="col">
+                <button class="w-100 btn btn-primary btn-lg" type="submit" th:text="#{button.save}">상품 등록</button>
+            </div>
+            <div class="col">
+                <button class="w-100 btn btn-secondary btn-lg"
+                        onclick="location.href='items.html'"
+                        th:onclick="|location.href='@{/validation/v4/items}'|"
+                        type="button" th:text="#{button.cancel}">취소
+                </button>
+            </div>
+        </div>
+
+    </form>
+
+</div> <!-- /container -->
+</body>
+</html>
+<!--만약 여기에서 `errors` 가 `null` 이라면 어떻게 될까?
+생각해보면 등록폼에 진입한 시점에는 `errors` 가 없다.
+따라서 `errors.containsKey()` 를 호출하는 순간 `NullPointerException` 이 발생한다.
+`errors?.` 은 `errors` 가 `null` 일때 `NullPointerException` 이 발생하는 대신, `null` 을 반환하는 문법
+이다.
+`th:if` 에서 `null` 은 실패로 처리되므로 오류 메시지가 출력되지 않는다.-->
